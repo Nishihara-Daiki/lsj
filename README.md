@@ -19,12 +19,12 @@
 
 ## 平易な言い換え辞書
 手法 (pointwise / pairwise) の違いにより、2つの言い換え辞書があります。
-+ pointwise [data/ss.pairwise.ours-B.tsv](data/ss.pairwise.ours-B.tsv)
-+ pairwise [data/ss.pointwise.tsv](data/ss.pointwise.tsv)
++ pointwise [data/ss.pointwise.tsv](data/ss.pointwise.tsv)
++ pairwise [data/ss.pairwise.ours-B.tsv](data/ss.pairwise.ours-B.tsv)
 
-pointwiseは以下の形式です。難易度は、初級:0/中級:1/上級:2です。cos(単語1,単語2)は単語1と単語2の分散表現の余弦類似度です。
-```text
-単語1	単語2	P(単語2|単語1)	cos(単語1,単語2)	単語1の難易度	単語2の難易度
+pointwiseの形式は、以下通りタブ区切りで提供されます。難易度は、初級:0/中級:1/上級:2です。cos(単語1,単語2)は単語1と単語2の分散表現の余弦類似度です。
+```
+単語1 単語2 P(単語2|単語1)  cos(単語1,単語2)    単語1の難易度 単語2の難易度
 ```
 pairwiseの形式は、pointwiseの1〜4列目までと同じです。手法の特性上、各単語の難易度は、推定されないため提供されません。
 
@@ -103,33 +103,33 @@ PythonでWikipediaの単語頻度を数え、筑波Webコーパス、現代日�
 ```python
 from collections import Counter
 with open('wiki.tok') as f:
-	wiki = Counter(word for line in f for word in line.strip().split())
+    wiki = Counter(word for line in f for word in line.strip().split())
 with open('NLT1.30_freq_list.tsv') as f:
-	tsukuba = {word:freq for line in f for i,(word,_,_,freq) in enumerate(line.strip().split()) if i != 0}
+    tsukuba = {word:freq for line in f for i,(word,_,_,freq) in enumerate(line.strip().split()) if i != 0}
 with open('BCCWJ.txt') as f:
-	bccwj = {l[3], sum(int(i) for i in l[9:15]) for line in f for i,l in enumerate(line.strip().split()) if i != 0}
+    bccwj = {l[3], sum(int(i) for i in l[9:15]) for line in f for i,l in enumerate(line.strip().split()) if i != 0}
 with open('word2freq.tsv', 'w') as f:
 for word in set(wiki) & set(tsukuba) & set(bccwj):
-	f.write('{}\t{}\t{}\t{}'.format(word, wiki[word], tsukuba[word], bccwj[word]))
+    f.write('{}\t{}\t{}\t{}'.format(word, wiki[word], tsukuba[word], bccwj[word]))
 ```
 
 PythonでWikipediaの文字頻度を数えます。
 ```python
 import collections
 with open('wiki.tok') as f:
-	c = collections.Counter(c for line in f for word in line.strip().split() for c in word)
+    c = collections.Counter(c for line in f for word in line.strip().split() for c in word)
 with open('char2freq.tsv', 'w') as f:
-	for k,v in c.items():
-		f.write('{}\t{}'.format(k,v))
+    for k,v in c.items():
+        f.write('{}\t{}'.format(k,v))
 ```
 
 Pythonで現代日本語書き言葉均衡コーパスから品詞辞書を作ります。
 ```python
 with open('BCCWJ.txt') as f:
-	bccwj = {l[3]:l[6] for line in f for i,l in enumerate(line.strip().split()) if i != 0}
+    bccwj = {l[3]:l[6] for line in f for i,l in enumerate(line.strip().split()) if i != 0}
 with open('word2pos.tsv', 'w') as f:
-	for k,v in bccwj.items():
-		f.write('{}\t{}'.format(k, v))
+    for k,v in bccwj.items():
+        f.write('{}\t{}'.format(k, v))
 ```
 
 PPDB:Japanese (10best) をダウンロードします。
@@ -141,14 +141,14 @@ gzip -d 10best.gz
 PythonでPPDB:Japaneseを整形します。
 ```python
 with open("10best") as inputf, open("ppdb-10best.tsv", 'w') as outf:
-	for line in inputf:
-		word1, word2, probs,_,_ = line.rstrip().split(' ||| ')
-		if ' ' in word1 or ' ' in word2: # 単語以外は飛ばす
-			continue
-		prob12, prob21 = [float(a) for a in probs.split()]
-		if word1 != word2:
-			outf.write('{}\t{}\t{}\n'.format(word1, word2, prob12))
-			outf.write('{}\t{}\t{}\n'.format(word2, word1, prob21))
+    for line in inputf:
+        word1, word2, probs,_,_ = line.rstrip().split(' ||| ')
+        if ' ' in word1 or ' ' in word2: # 単語以外は飛ばす
+            continue
+        prob12, prob21 = [float(a) for a in probs.split()]
+        if word1 != word2:
+            outf.write('{}\t{}\t{}\n'.format(word1, word2, prob12))
+            outf.write('{}\t{}\t{}\n'.format(word2, word1, prob21))
 ```
 
 ### 実行
