@@ -151,12 +151,82 @@ with open("10best") as inputf, open("ppdb-10best.tsv", 'w') as outf:
             outf.write('{}\t{}\t{}\n'.format(word2, word1, prob21))
 ```
 
-### 実行
+やさしい日本語コーパス（[T15](http://www.jnlp.org/SNOW/T15)、[T23](http://www.jnlp.org/SNOW/T23)）を入手し、整形します。
 ```sh
-./experiments.sh simplification
+# コーパスを入手
+wget https://filedn.com/lit4DCIlHwxfS1gj9zcYuDJ/SNOW/T15-2020.1.7.xlsx -P data
+wget https://filedn.com/lit4DCIlHwxfS1gj9zcYuDJ/SNOW/T23-2020.1.7.xlsx -P data
+
+# エクセルファイルをtsvに変換
+python3 -m xlsx2csv -d tab data/T15-2020.1.7.xlsx data/T15-2020.1.7.tsv
+python3 -m xlsx2csv -d tab data/T23-2020.1.7.xlsx data/T23-2020.1.7.tsv
+
+# 2つのコーパスをつなげて整形
+cat <(sed 1d data/T15-2020.1.7.tsv) <(sed 1d data/T23-2020.1.7.tsv) \
+  | tee >(cut -f2 | mecab -O wakati > data/ja.comp) \
+  | cut -f3 | mecab -O wakati > data/ja.simp
 ```
-実験の全てを実行したい場合は引数無しに実行
+GIZAでアライメントを取ります。
+```sh
+git clone https://github.com/moses-smt/mosesdecoder
+mosesdecoder/scripts/training/train-model.perl -root-dir data -f comp -e simp -corpus data/ja -external-bin-dir tools -alignment srctotgt -final-alignment-model 2 -first-step 1 -last-step 6 > data/training.out
+```
+得られた `data/model/lex.e2f` をPythonでTSVに変換します。
+```python
+with open('data/model/lex.e2f') as inputf, open('data/giza.tsv', 'w') as outf:
+for line in inputf:
+    w1,w2,p = line.rstrip().split(' ')
+    if w1 == w2:
+        continue
+    outf.write("{}\t{}\t{}\n".format(w1, w2, p))
+```
+
+
+### 実行
 ```sh
 ./experiments.sh
 ```
+
+## 語彙平易化ツールキット
+### 使用例
+```sh
+python3 scripts/lexical_simplification.py \
+    --candidate bert \
+    --ranking bert \
+    --data /path/to/EvaluationDataset \
+    --output output/example.out \
+    --embedding data/skipgram.bin  \
+    --language-model data/wiki.arpa.bin \
+    --word-to-freq data/word2freq.tsv \
+    --synonym-dict data/ppdb-10best.tsv \
+    --pretrained-bert bert-base-japanese-whole-word-masking \
+    --device 0 \
+    --word-to-complexity data/word2complexity.tsv > log/example.log
+```
+
+### 引数
+
+* `--candidate, -C` 言い換え候補取得の手法を選択
+    - `glavas` Light-LS (Glavas and Stajner 2015)
+    - `synonym` 単語同義語辞書を使う
+    - `bert` BERT-LS (Qiang et al. 2019)
+    - `all` glavas, synonym, bert のいずれかで得られる言い換え候補を使う
+    - `gold` 評価データセットを用いて正解の言い換え候補を使う
+* `--ranking, -R` ランキング手法を選択
+    - `glavas` Light-LS
+    - `language-model` 言語モデルのスコアでランキングを行う
+    - `bert` BERTの予測スコアでランキングを行う
+    - `none` ランキングを行わない
+* `--output, -o` 言い換えの出力ファイルを指定する。`stdout`を指定すると、標準出力に言い換えを出力する。
+* `--log, -g` ログの出力ファイルを指定する。`stdout`を指定すると、標準出力にログを出力する。
+* `--data, -d` [小平らの評価用データセット](https://github.com/KodairaTomonori/EvaluationDataset)のパス
+* `--embedding, -e` 単語分散表現のバイナリファイル
+* `--language-model, -m` KenLMによる訓練済み言語モデル
+* `--most-similar, -n` 言い換え候補取得時のtop-n
+* `--word-to-freq, -f` 単語頻度辞書（単語,頻度のtsvファイル）
+* `--synonym-dict, -p` 同義語辞書（単語1,単語2,スコアのtsvファイル）
+* `--pretraind-bert, -b` 訓練済みBERTモデル
+* `--word-to-complexity, -l` 単語難易度辞書（単語,スコアのtsvファイル）
+* `--cos-threshold, -c` 言い換え候補取得時の閾値
+* `--device, -u` 使用するGPU
 
