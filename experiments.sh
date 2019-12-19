@@ -11,7 +11,11 @@ WORD_2_FREQ=data/word2freq.tsv
 CHAR_2_FREQ=data/char2freq.tsv
 WORD_2_POS=data/word2pos.tsv
 WORD_PAIR_2_PROB=data/ppdb-10best.tsv
+WORD_PAIR_2_PROB_BY_GIZA=data/giza.tsv
 LANGUAGE_MODEL=data/wiki.arpa.bin
+
+# The number of GPU device for bert
+DEVICE=0
 
 
 # ================================================
@@ -116,29 +120,60 @@ fi
 mkdir -p output
 
 if [ $# -eq 0 ]; then
-	# Light-LS / word2vec / average ranking
-	name=lsj.Light-LS.average-ranking
-	python3 scripts/lexical_simplification.py --candidate glavas --simplicity glavas --ranking glavas --data ${EVALUATION_DATASET} --output output/${name}.out --embedding ${WORD_EMBEDDING}  --language-model ${LANGUAGE_MODEL} --word-to-freq ${WORD_2_FREQ} --synonym-dict ${WORD_PAIR_2_PROB} --simple-synonym data/pairwise.ours-B.tsv --word-to-complexity data/word2complexity.tsv > log/${name}.log
 
-	# Ours / PPDB:pairwise / 5-gram language model
-	name=lsj.ppdb-pointwise.language-model
-	python3 scripts/lexical_simplification.py --candidate synonym --simplicity point-wise --ranking language-model --data ${EVALUATION_DATASET} --output output/${name}.out --embedding ${WORD_EMBEDDING}  --language-model ${LANGUAGE_MODEL} --word-to-freq ${WORD_2_FREQ} --synonym-dict ${WORD_PAIR_2_PROB} --simple-synonym data/pairwise.ours-B.tsv --word-to-complexity data/word2complexity.tsv > log/${name}.log
+	# candidate method / ranking method
 
-	# Ours / PPDB:pairwise / average ranking
-	name=lsj.ppdb-pointwise.average-ranking
-	python3 scripts/lexical_simplification.py --candidate synonym --simplicity point-wise --ranking glavas --data ${EVALUATION_DATASET} --output output/${name}.out --embedding ${WORD_EMBEDDING}  --language-model ${LANGUAGE_MODEL} --word-to-freq ${WORD_2_FREQ} --synonym-dict ${WORD_PAIR_2_PROB} --simple-synonym data/pairwise.ours-B.tsv --word-to-complexity data/word2complexity.tsv > log/${name}.log
+	# Light-LS / Light-LS
+	name=lsj.Light-LS.Light-LS
+	python3 scripts/lexical_simplification.py --candidate glavas --ranking glavas --data ${EVALUATION_DATASET} --output output/${name}.out --embedding ${WORD_EMBEDDING} --language-model ${LANGUAGE_MODEL} --word-to-freq ${WORD_2_FREQ} --synonym-dict ${WORD_PAIR_2_PROB} --pretrained-bert bert-base-japanese-whole-word-masking --word-to-complexity data/word2complexity.tsv > log/${name}.log
 
-	# Ours / PPDB:pairwise / 5-gram language model
-	name=lsj.ppdb-pairwise.language-model
-	python3 scripts/lexical_simplification.py --candidate synonym --simplicity pair-wise --ranking language-model --data ${EVALUATION_DATASET} --output output/${name}.out --embedding ${WORD_EMBEDDING}  --language-model ${LANGUAGE_MODEL} --word-to-freq ${WORD_2_FREQ} --synonym-dict ${WORD_PAIR_2_PROB} --simple-synonym data/pairwise.ours-B.tsv --word-to-complexity data/word2complexity.tsv > log/${name}.log
+	# Light-LS / 5-gram language model
+	name=lsj.Light-LS.Light-LS
+	python3 scripts/lexical_simplification.py --candidate glavas --ranking language-model --data ${EVALUATION_DATASET} --output output/${name}.out --embedding ${WORD_EMBEDDING} --language-model ${LANGUAGE_MODEL} --word-to-freq ${WORD_2_FREQ} --synonym-dict ${WORD_PAIR_2_PROB} --pretrained-bert bert-base-japanese-whole-word-masking --word-to-complexity data/word2complexity.tsv > log/${name}.log
 
-	# Ours / PPDB:pairwise / average ranking
-	name=lsj.ppdb-pairwise.average-ranking
-	python3 scripts/lexical_simplification.py --candidate synonym --simplicity pair-wise --ranking glavas --data ${EVALUATION_DATASET} --output output/${name}.out --embedding ${WORD_EMBEDDING}  --language-model ${LANGUAGE_MODEL} --word-to-freq ${WORD_2_FREQ} --synonym-dict ${WORD_PAIR_2_PROB} --simple-synonym data/pairwise.ours-B.tsv --word-to-complexity data/word2complexity.tsv > log/${name}.log
-fi
 
-if [ "$1" == 'simplification' ]; then
-	# Ours / PPDB:pairwise / average ranking
-	name=lsj.ppdb-pointwise.average-ranking
-	python3 scripts/lexical_simplification.py --candidate synonym --simplicity point-wise --ranking glavas --data ${EVALUATION_DATASET} --output output/${name}.out --embedding ${WORD_EMBEDDING}  --language-model ${LANGUAGE_MODEL} --word-to-freq ${WORD_2_FREQ} --synonym-dict ${WORD_PAIR_2_PROB} --simple-synonym data/pairwise.ours-B.tsv --word-to-complexity data/word2complexity.tsv > log/${name}.log
+	# PPDB / 5-gram language model
+	name=lsj.ppdb.language-model
+	python3 scripts/lexical_simplification.py --candidate sysnonym --ranking language-model --data ${EVALUATION_DATASET} --output output/${name}.out --embedding ${WORD_EMBEDDING} --language-model ${LANGUAGE_MODEL} --word-to-freq ${WORD_2_FREQ} --synonym-dict ${WORD_PAIR_2_PROB} --pretrained-bert bert-base-japanese-whole-word-masking --word-to-complexity data/word2complexity.tsv > log/${name}.log
+
+	# PPDB / Light-LS
+	name=lsj.ppdb.Light-LS
+	python3 scripts/lexical_simplification.py --candidate synonym --ranking glavas --data ${EVALUATION_DATASET} --output output/${name}.out --embedding ${WORD_EMBEDDING} --language-model ${LANGUAGE_MODEL} --word-to-freq ${WORD_2_FREQ} --synonym-dict ${WORD_PAIR_2_PROB} --pretrained-bert bert-base-japanese-whole-word-masking --word-to-complexity data/word2complexity.tsv > log/${name}.log
+
+
+	# GIZA / 5-gram language model
+	name=lsj.giza.language-model
+	python3 scripts/lexical_simplification.py --candidate synonym --ranking language-model --data ${EVALUATION_DATASET} --output output/${name}.out --embedding ${WORD_EMBEDDING} --language-model ${LANGUAGE_MODEL} --word-to-freq ${WORD_2_FREQ} --synonym-dict ${WORD_PAIR_2_PROB_BY_GIZA} --pretrained-bert bert-base-japanese-whole-word-masking --word-to-complexity data/word2complexity.tsv > log/${name}.log
+
+	# GIZA / Light-LS
+	name=lsj.giza.Light-LS
+	python3 scripts/lexical_simplification.py --candidate synonym --ranking glavas --data ${EVALUATION_DATASET} --output output/${name}.out --embedding ${WORD_EMBEDDING} --language-model ${LANGUAGE_MODEL} --word-to-freq ${WORD_2_FREQ} --synonym-dict ${WORD_PAIR_2_PROB_BY_GIZA} --pretrained-bert bert-base-japanese-whole-word-masking --word-to-complexity data/word2complexity.tsv > log/${name}.log
+
+
+	# PPDB:point-wise / 5-gram language model
+	name=lsj.point-wise.language-model
+	python3 scripts/lexical_simplification.py --candidate synonym --ranking language-model --data ${EVALUATION_DATASET} --output output/${name}.out --embedding ${WORD_EMBEDDING} --language-model ${LANGUAGE_MODEL} --word-to-freq ${WORD_2_FREQ} --synonym-dict data/ss.pointwise.tsv --pretrained-bert bert-base-japanese-whole-word-masking --word-to-complexity data/word2complexity.tsv > log/${name}.log
+
+	# PPDB:point-wise / Light-LS
+	name=lsj.point-wise.language-model
+	python3 scripts/lexical_simplification.py --candidate synonym --ranking glavas --data ${EVALUATION_DATASET} --output output/${name}.out --embedding ${WORD_EMBEDDING} --language-model ${LANGUAGE_MODEL} --word-to-freq ${WORD_2_FREQ} --synonym-dict data/ss.pointwise.tsv --pretrained-bert bert-base-japanese-whole-word-masking --word-to-complexity data/word2complexity.tsv > log/${name}.log
+
+
+	# bert / bert
+	name=lsj.bert.bert
+	python3 scripts/lexical_simplification.py --candidate bert --ranking bert --data ${EVALUATION_DATASET} --output output/${name}.out --embedding ${WORD_EMBEDDING} --language-model ${LANGUAGE_MODEL} --word-to-freq ${WORD_2_FREQ} --synonym-dict ${WORD_PAIR_2_PROB} --pretrained-bert bert-base-japanese-whole-word-masking --device ${DEVICE} --word-to-complexity data/word2complexity.tsv > log/${name}.log
+
+
+	### 言い換え候補選択の評価
+	name=lsj.all.none
+	python3 scripts/lexical_simplification.py --candidate all --ranking none --data ${EVALUATION_DATASET} --output output/${name}.out --embedding ${WORD_EMBEDDING} --language-model ${LANGUAGE_MODEL} --word-to-freq ${WORD_2_FREQ} --synonym-dict ${WORD_PAIR_2_PROB} --pretrained-bert bert-base-japanese-whole-word-masking --device ${DEVICE} --word-to-complexity data/word2complexity.tsv > log/${name}.log
+
+	### ランキングの評価
+	# gold / 5-gram language model
+	name=lsj.gold.language-model
+	python3 scripts/lexical_simplification.py --candidate gold --ranking language-model --data ${EVALUATION_DATASET} --output output/${name}.out --embedding ${WORD_EMBEDDING} --language-model ${LANGUAGE_MODEL} --word-to-freq ${WORD_2_FREQ} --synonym-dict ${WORD_PAIR_2_PROB} --pretrained-bert bert-base-japanese-whole-word-masking --word-to-complexity data/word2complexity.tsv > log/${name}.log
+
+	# gold / Light-LS
+	name=lsj.gold.glavas
+	python3 scripts/lexical_simplification.py --candidate gold --ranking glavas --data ${EVALUATION_DATASET} --output output/${name}.out --embedding ${WORD_EMBEDDING} --language-model ${LANGUAGE_MODEL} --word-to-freq ${WORD_2_FREQ} --synonym-dict ${WORD_PAIR_2_PROB} --pretrained-bert bert-base-japanese-whole-word-masking --word-to-complexity data/word2complexity.tsv > log/${name}.log
 fi
