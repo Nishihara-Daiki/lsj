@@ -1,7 +1,10 @@
 # Lexical Simplification Japanese
 
+[English README](README-EN.md)
+
 ## 公開物
 大きく分けて以下の３つがあります。
+
 + 単語難易度辞書
 + 平易な言い換え辞書
 + 語彙平易化ツールキット
@@ -19,6 +22,7 @@
 
 ## 平易な言い換え辞書
 手法 (pointwise / pairwise) の違いにより、2つの言い換え辞書があります。
+
 + pointwise [data/ss.pointwise.tsv](data/ss.pointwise.tsv)
 + pairwise [data/ss.pairwise.ours-B.tsv](data/ss.pairwise.ours-B.tsv)
 
@@ -28,23 +32,107 @@ pointwiseの形式は、以下通りタブ区切りで提供されます。難�
 ```
 pairwiseの形式は、pointwiseの1〜4列目までと同じです。手法の特性上、各単語の難易度は、推定されないため提供されません。
 
+## 語彙平易化ツールキット
 
-## 実験の再現
-### 環境
+文中の指定された単語（対象単語）を平易な表現に言い換えます。
+大きく2つのステップで言い換えを行います。
+
+1. **言い換え候補取得**  対象単語の言い換え候補を取得します。
+2. **ランキング**  その言い換え候補から最適なものを選ぶため、ランキングを行います。
+
+
+### 環境構築（クイックスタート）
+
 + Python 3.7.2
 + Mecab (IPADIC 2.7.0)
 
+必要パッケージと評価用データセットのインストール
+```sh
+pip3 install -r requirements.txt
+git clone https://github.com/KodairaTomonori/EvaluationDataset
+```
+
+動作確認
+```sh
+python3 scripts/lexical_simplification.py \
+    --candidate gold \
+    --ranking none \
+    --data ../EvaluationDataset \
+    --output output/tmp.out
+```
+出力例
+```
+[log] word2vec vocab size is 0
+2010it [00:00, 7789.41it/s]
+acc/prec/changed = 70.50    70.50   100.00
+candidate potential/prec/recall = 76.99 31.46   62.67
+```
+
+### 引数
+
+* `--candidate, -C` 言い換え候補取得の手法を選択
+    - `glavas` Light-LS (Glavas and Stajner 2015)
+    - `synonym` 単語同義語辞書を使う
+    - `bert` BERT-LS (Qiang et al. 2019)
+    - `all` glavas, synonym, bert のいずれかで得られる言い換え候補を使う
+    - `gold` 評価データセットを用いて正解の言い換え候補を使う
+* `--ranking, -R` ランキング手法を選択
+    - `glavas` Light-LS
+    - `language-model` 言語モデルのスコアでランキングを行う
+    - `bert` BERTの予測スコアでランキングを行う ※`--candidate=bert` を同時に指定しなければならない。
+    - `none` ランキングを行わない
+* `--output, -o` 言い換えの出力ファイルを指定する。`stdout`を指定すると、標準出力に言い換えを出力する。
+* `--log, -g` ログの出力ファイルを指定する。`stdout`を指定すると、標準出力にログを出力する。
+* `--data, -d` [小平らの評価用データセット](https://github.com/KodairaTomonori/EvaluationDataset)のパス
+* `--embedding, -e` 単語分散表現のバイナリファイル
+* `--language-model, -m` KenLMによる訓練済み言語モデル
+* `--most-similar, -n` 言い換え候補取得時のtop-n
+* `--word-to-freq, -f` 単語頻度辞書（単語,頻度のtsvファイル）
+* `--synonym-dict, -p` 同義語辞書（単語1,単語2,スコアのtsvファイル）
+* `--pretraind-bert, -b` 訓練済みBERTモデル
+* `--word-to-complexity, -l` 単語難易度辞書（単語,スコアのtsvファイル）
+* `--cos-threshold, -c` 言い換え候補取得時の閾値
+* `--device, -u` 使用するGPU
+
+
+
+
+
+## 実験の再現
+
 ### ダウンロードとインストール
+
 必要なパッケージをインストールします。MeCabは、日本語対応できるか確認してください。
 ```sh
 apt install -y mecab libmecab-dev mecab-ipadic-utf8 libboost-all-dev
 pip3 install -r requirements.txt
 ```
 
-評価用データセットをダウンロードします。
+使用するスクリプトに合わせて、データを用意します。
+単語難易度辞書の作成（`word_complexity.py`）や平易な言い換え辞書の作成（`simple_synonym.py`）では、**分散表現**、**単語頻度**、**文字頻度**、**品詞辞書**を用意します。
+
+語彙平易化ツールキット（`lexical_simplification.py`）では、**評価用データセット**に加え、下記の通り使用するオプションによって必要なデータが異なります。
+
+|                                | 言語モデル | 分散表現 | 単語頻度 | 言い換え辞書 |
+|--------------------------------|:-------:|:-------:|:-------:|:-------:|
+| `--candidate = glavas`         |         | &check; |         |         |
+| `--candidate = synonym`        |         | &check; |         | &check; |
+| `--candidate = glavas+synonym` |         | &check; |         | &check; |
+| `--simplicity = glavas`        |         | &check; | &check; |         |
+| `--simplicity = point-wise`    |         | &check; |         |         |
+| `--simplicity = pari-wise`     |         | &check; |         |         |
+| `--ranking = glavas`           | &check; | &check; | &check; |         |
+| `--ranking = language-model`   | &check; | &check; |         |         |
+| `--ranking = ours`             | &check; | &check; | &check; | &check; |
+
+
+
+#### 評価用データセット
 ```sh
 git clone https://github.com/KodairaTomonori/EvaluationDataset
 ```
+
+#### 言語モデル
 
 日本語Wikipediaをダウンロードします。
 ```sh
@@ -80,6 +168,9 @@ ${KENLM}/bin/lmplz -o 5 -S 80% -T tmp < wiki.tok > wiki.arpa
 ${KENLM}/bin/build_binary -i wiki.arpa wiki.arpa.bin
 ```
 
+
+#### 分散表現
+
 [朝日新聞単語ベクトル](https://cl.asahi.com/api_data/wordembedding.html)を入手してください。
 Pythonで、テキスト形式の分散表現をバイナリに変換します。
 ```python
@@ -87,6 +178,10 @@ from gensim.models import KeyedVectors
 model = KeyedVectors.load_word2vec_format('skipram.txt')
 model.save('skipgram.bin')
 ```
+
+#### 単語頻度
+
+`word_complexity.py`, `simple_synonym.py` を使用する時や、`lexical_simplificaton.py` の `--ranking` が `glavas`/`bert` の時に必要です。
 
 筑波Webコーパスの頻度表を入手します。エクセルファイルで配布しているので、tsvに変換します。
 ```sh
@@ -113,6 +208,8 @@ for word in set(wiki) & set(tsukuba) & set(bccwj):
     f.write('{}\t{}\t{}\t{}'.format(word, wiki[word], tsukuba[word], bccwj[word]))
 ```
 
+#### 文字頻度
+
 PythonでWikipediaの文字頻度を数えます。
 ```python
 import collections
@@ -123,6 +220,8 @@ with open('char2freq.tsv', 'w') as f:
         f.write('{}\t{}'.format(k,v))
 ```
 
+#### 品詞辞書
+
 Pythonで現代日本語書き言葉均衡コーパスから品詞辞書を作ります。
 ```python
 with open('BCCWJ.txt') as f:
@@ -131,6 +230,8 @@ with open('word2pos.tsv', 'w') as f:
     for k,v in bccwj.items():
         f.write('{}\t{}'.format(k, v))
 ```
+
+#### 言い換え辞書
 
 PPDB:Japanese (10best) をダウンロードします。
 ```sh
@@ -151,12 +252,15 @@ with open("10best") as inputf, open("ppdb-10best.tsv", 'w') as outf:
             outf.write('{}\t{}\t{}\n'.format(word2, word1, prob21))
 ```
 
+
 ### 実行
-```sh
-./experiments.sh simplification
-```
-実験の全てを実行したい場合は引数無しに実行
+
+全ての実験を実行
 ```sh
 ./experiments.sh
 ```
 
+語彙平易化のみを実行する場合
+```sh
+./experiments.sh simplification
+```
