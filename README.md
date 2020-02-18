@@ -1,58 +1,56 @@
 # Lexical Simplification Japanese
 
-[English README](README-EN.md)
+## Publication
 
-## 公開物
-大きく分けて以下の３つがあります。
++ a large-scale word complexity lexicon
++ a simplified synonym lexicon from complex words into simpler ones
++ a toolkit for development and benchmarking lexical simplification system
 
-+ 単語難易度辞書
-+ 平易な言い換え辞書
-+ 語彙平易化ツールキット
 
-## 単語難易度辞書
-単語難易度辞書 ([data/word2complexity.tsv](data/word2complexity.tsv)) は、各単語に、初級/中級/上級のラベルがタブ区切りで付与されています。
-ラベルごとの収録単語数は以下の通りです。
+## Word complexity lexicon
+Word complexity lexicon ([data/word2complexity.tsv](data/word2complexity.tsv)) has an easy/medium/difficult label for each word, separated by tabs.
+The number of words included in each label is as follows:
 
-| ラベル | 収録単語数 |
+| label | #words |
 | -- | --: |
-| 初級 | 749 |
-| 中級 | 7,808 |
-| 上級 | 32,048 |
-| 合計 | 40,605 |
+| easy | 749 |
+| medium | 7,808 |
+| difficult | 32,048 |
+| total | 40,605 |
 
-## 平易な言い換え辞書
-手法 (pointwise / pairwise) の違いにより、2つの言い換え辞書があります。
+## A simplified synonym lexicon
+There are 2 lexicon by pointwise or pairwise methods.
 
 + pointwise [data/ss.pointwise.tsv](data/ss.pointwise.tsv)
 + pairwise [data/ss.pairwise.ours-B.tsv](data/ss.pairwise.ours-B.tsv)
 
-pointwiseの形式は、以下通りタブ区切りで提供されます。難易度は、初級:0/中級:1/上級:2です。cos(単語1,単語2)は単語1と単語2の分散表現の余弦類似度です。
+pointwise is separated by tabs as follows:
 ```
-単語1 単語2 P(単語2|単語1)  cos(単語1,単語2)    単語1の難易度 単語2の難易度
+word1 word2 P(word2|word1)  cos(word1,word2)    complexity_of_word1 complexity_of_word2
 ```
-pairwiseの形式は、pointwiseの1〜4列目までと同じです。手法の特性上、各単語の難易度は、推定されないため提供されません。
-
-## 語彙平易化ツールキット
-
-文中の指定された単語（対象単語）を平易な表現に言い換えます。
-大きく2つのステップで言い換えを行います。
-
-1. **言い換え候補取得**  対象単語の言い換え候補を取得します。
-2. **ランキング**  その言い換え候補から最適なものを選ぶため、ランキングを行います。
+where complexity is 0(easy), 1(medium) or 2(difficult) and cos(word1,word2) is cosine similarity of word embeddings of word1 and word2.
+Pairwise is also separated by tabs as similar as pointwise, but it has only first 4 columns. Pairwise method does not estimate the complexity score.
 
 
-### 環境構築（クイックスタート）
+## A toolkit for lexical simplification
+
+Rewrite a target word in the sentence into simpler one.
+It consists 2 parts:
+1. **Aqcuire candidates**  aquire some paraphrase candidates.
+2. **rank**  Rank the paraphrase and output the best candidate.
+
+### Environment
 
 + Python 3.7.2
 + Mecab (IPADIC 2.7.0)
 
-必要パッケージと評価用データセットのインストール
+Install packages and download the evaluation dataset:
 ```sh
 pip3 install -r requirements.txt
 git clone https://github.com/KodairaTomonori/EvaluationDataset
 ```
 
-動作確認
+Check:
 ```sh
 python3 scripts/lexical_simplification.py \
     --candidate gold \
@@ -60,7 +58,7 @@ python3 scripts/lexical_simplification.py \
     --data ../EvaluationDataset \
     --output output/tmp.out
 ```
-出力例
+Output:
 ```
 [log] word2vec vocab size is 0
 2010it [00:00, 7789.41it/s]
@@ -68,52 +66,49 @@ acc/prec/changed = 70.50    70.50   100.00
 candidate potential/prec/recall = 76.99 31.46   62.67
 ```
 
-### 引数
+### Arguments
 
-* `--candidate, -C` 言い換え候補取得の手法を選択
-    - `glavas` Light-LS (Glavas and Stajner 2015)
-    - `synonym` 単語同義語辞書を使う
-    - `bert` BERT-LS (Qiang et al. 2019)
-    - `all` glavas, synonym, bert のいずれかで得られる言い換え候補を使う
-    - `gold` 評価データセットを用いて正解の言い換え候補を使う
-* `--ranking, -R` ランキング手法を選択
+* `--candidate, -C` How to acuire paraphrase candidates.
+    - `glavas` Light-LS (Glavas and Stajner 2015).
+    - `synonym` Use synonym dictionary.
+    - `glavas+synonym` BERT-LS (Qiang et al. 2019).
+* `--simplicity, -S` How to determine if the candidate word is simpler than the original one.
+    - `none` Regard all candidate words are simple.
+    - `glavas` Light-LS.
+    - `point-wise` Use word-to-complexity dictionary.
+    - `pair-wise` Use simple paraphrase dictionlay.
+* `--ranking, -R` How to rank the candidates.
     - `glavas` Light-LS
-    - `language-model` 言語モデルのスコアでランキングを行う
-    - `bert` BERTの予測スコアでランキングを行う ※`--candidate=bert` を同時に指定しなければならない。
-    - `none` ランキングを行わない
-* `--output, -o` 言い換えの出力ファイルを指定する。`stdout`を指定すると、標準出力に言い換えを出力する。
-* `--log, -g` ログの出力ファイルを指定する。`stdout`を指定すると、標準出力にログを出力する。
-* `--data, -d` [小平らの評価用データセット](https://github.com/KodairaTomonori/EvaluationDataset)のパス
-* `--embedding, -e` 単語分散表現のバイナリファイル
-* `--language-model, -m` KenLMによる訓練済み言語モデル
-* `--most-similar, -n` 言い換え候補取得時のtop-n
-* `--word-to-freq, -f` 単語頻度辞書（単語,頻度のtsvファイル）
-* `--synonym-dict, -p` 同義語辞書（単語1,単語2,スコアのtsvファイル）
-* `--pretraind-bert, -b` 訓練済みBERTモデル
-* `--word-to-complexity, -l` 単語難易度辞書（単語,スコアのtsvファイル）
-* `--cos-threshold, -c` 言い換え候補取得時の閾値
-* `--device, -u` 使用するGPU
+    - `language-model` Use language model's score.
+    - `ours` Similar to `glavas` but also use score of synonym dictionaly.
+* `--output, -o` output filename of paraphrase. Default is `stdout` (starndard output).
+* `--log, -g` output log filename. Default is `stdout`.
+* `--data, -d` Path to [Kodaira's evaluation dataset](https://github.com/KodairaTomonori/EvaluationDataset)
+* `--embedding, -e` Binary file of word embedding.
+* `--language-model, -m` Pretrained language model by KenLM.
+* `--most-similar, -n` Acuire top-n of paraphrase candidates.
+* `--word-to-freq, -f` A word to word frequency dictionary .tsv file.
+* `--synonym-dict, -p` A synonym dictionlary .tsv file. It consits 3 colomun of word 1, word 2 and score.
+* `--word-to-complexity, -l` A word to word complexity dictionary .tsv file.
+* `--cos-threshold, -c` Remove paraphrase candidates below cosine threshold.
 
 
+## Experiment
 
+### Install and download
 
-
-## 実験の再現
-
-### ダウンロードとインストール
-
-必要なパッケージをインストールします。MeCabは、日本語対応できるか確認してください。
+Install packages. Check your MeCab supports Japanese.
 ```sh
 apt install -y mecab libmecab-dev mecab-ipadic-utf8 libboost-all-dev
 pip3 install -r requirements.txt
 ```
 
-使用するスクリプトに合わせて、データを用意します。
-単語難易度辞書の作成（`word_complexity.py`）や平易な言い換え辞書の作成（`simple_synonym.py`）では、**分散表現**、**単語頻度**、**文字頻度**、**品詞辞書**を用意します。
+word complexity lexicon tool（`word_complexity.py`）or a simplified synonym lexicon tool（`simple_synonym.py`）need **word embedding**、**word freq**、**char freq**、**word to pos**.
 
-語彙平易化ツールキット（`lexical_simplification.py`）では、**評価用データセット**に加え、下記の通り使用するオプションによって必要なデータが異なります。
 
-|                                | 言語モデル | 分散表現 | 単語頻度 | 言い換え辞書 |
+A toolkit for lexical simplification.（`lexical_simplification.py`）needs **Kodaira's evaluation dataset**
+
+|                                | language-model | embedding | word2freq | word2freq |
 |--------------------------------|:-------:|:-------:|:-------:|:-------:|
 | `--candidate = glavas`         |         | &check; |         |         |
 | `--candidate = synonym`        |         | &check; |         | &check; |
@@ -127,19 +122,19 @@ pip3 install -r requirements.txt
 
 
 
-#### 評価用データセット
+#### Evaluation dataset
 ```sh
 git clone https://github.com/KodairaTomonori/EvaluationDataset
 ```
 
-#### 言語モデル
+#### Language model
 
-日本語Wikipediaをダウンロードします。
+Down load Japanese Wikipedia:
 ```sh
 wget https://dumps.wikimedia.org/jawiki/20190801/jawiki-20190801-pages-articles-multistream.xml.bz2
 ```
 
-Wikipediaから本文を抽出します。
+Get and extranct Wikipedia text:
 ```sh
 wget https://raw.githubusercontent.com/attardi/wikiextractor/3162bb6c3c9ebd2d15be507aa11d6fa818a454ac/WikiExtractor.py -P scripts/
 python3 scripts/WikiExtractor.py -b 5G -o extracted jawiki-20190801-pages-articles-multistream.xml.bz2 -q
@@ -147,12 +142,12 @@ mv extracted/AA/wiki_00 .
 rmdir extracted/AA extracted
 ```
 
-日本語Wikipediaをトークナイズします。
+Toknize Japanese:
 ```sh
 cat wiki_00 | grep -v -e "<doc" -e "</doc>" -e '^\s*$' | mecab -O wakati > wiki.tok
 ```
 
-KenLMをダウンロードおよびビルドします。
+Download KenLM:
 ```sh
 git clone https://github.com/kpu/kenlm
 mkdir -p kenlm/build
@@ -161,7 +156,7 @@ cmake ..
 make -j 4
 ```
 
-言語モデルを訓練します。
+Train a language model:
 ```sh
 mkdir -p tmp
 ${KENLM}/bin/lmplz -o 5 -S 80% -T tmp < wiki.tok > wiki.arpa
@@ -169,32 +164,30 @@ ${KENLM}/bin/build_binary -i wiki.arpa wiki.arpa.bin
 ```
 
 
-#### 分散表現
+#### Train embedding
 
-[朝日新聞単語ベクトル](https://cl.asahi.com/api_data/wordembedding.html)を入手してください。
-Pythonで、テキスト形式の分散表現をバイナリに変換します。
+Get [Asahi Shinbun word vector](https://cl.asahi.com/api_data/wordembedding.html).
+Convert text to binary by Python.
 ```python
 from gensim.models import KeyedVectors
 model = KeyedVectors.load_word2vec_format('skipram.txt')
 model.save('skipgram.bin')
 ```
 
-#### 単語頻度
+#### Word frequency
 
-`word_complexity.py`, `simple_synonym.py` を使用する時や、`lexical_simplificaton.py` の `--ranking` が `glavas`/`bert` の時に必要です。
-
-筑波Webコーパスの頻度表を入手します。エクセルファイルで配布しているので、tsvに変換します。
+Get Tsukuba Web Corpus and convert from .xlsx to .tsv.
 ```sh
 wget http://nlt.tsukuba.lagoinst.info/site_media/xlsx/NLT1.30_freq_list.xlsx
 pip3 install xlsx2csv
 python3 -m xlsx2csv -n "NLT 1.30頻度リスト" -d tab NLT1.30_freq_list.xlsx NLT1.30_freq_list.tsv
 ```
-現代日本語書き言葉均衡コーパスの頻度表を入手します。
+Get BCCWJ word frequency:
 ```sh
 wget https://pj.ninjal.ac.jp/corpus_center/bccwj/data-files/frequency-list/BCCWJ-main_goihyo.zip
 unzip -j BCCWJ-main_goihyo.zip 2_BCCWJ/BCCWJ.txt
 ```
-PythonでWikipediaの単語頻度を数え、筑波Webコーパス、現代日本語書き言葉均衡コーパスの単語頻度表とともに1つにまとめます。
+In Python, count a word in Wikipedia and combine three word frequency file into one.
 ```python
 from collections import Counter
 with open('wiki.tok') as f:
@@ -208,9 +201,10 @@ for word in set(wiki) & set(tsukuba) & set(bccwj):
     f.write('{}\t{}\t{}\t{}'.format(word, wiki[word], tsukuba[word], bccwj[word]))
 ```
 
-#### 文字頻度
+#### Charactor frequency
 
-PythonでWikipediaの文字頻度を数えます。
+Count Wikipedia charactor frequency by Python:
+
 ```python
 import collections
 with open('wiki.tok') as f:
@@ -220,9 +214,9 @@ with open('char2freq.tsv', 'w') as f:
         f.write('{}\t{}'.format(k,v))
 ```
 
-#### 品詞辞書
+#### A word to part of speech dictionary
 
-Pythonで現代日本語書き言葉均衡コーパスから品詞辞書を作ります。
+Create a word to part of speech dictionary from BCCWJ corpus by Python:
 ```python
 with open('BCCWJ.txt') as f:
     bccwj = {l[3]:l[6] for line in f for i,l in enumerate(line.strip().split()) if i != 0}
@@ -231,15 +225,15 @@ with open('word2pos.tsv', 'w') as f:
         f.write('{}\t{}'.format(k, v))
 ```
 
-#### 言い換え辞書
+#### Paraphrase dictionary
 
-PPDB:Japanese (10best) をダウンロードします。
+Download PPDB:Japanese (10best):
 ```sh
 wget https://ahcweb01.naist.jp/old/resource/jppdb/data/10best.gz
 gzip -d 10best.gz
 ```
 
-PythonでPPDB:Japaneseを整形します。
+Make a synonym dictionary from PPDB:Japanese by Python:
 ```python
 with open("10best") as inputf, open("ppdb-10best.tsv", 'w') as outf:
     for line in inputf:
@@ -253,14 +247,14 @@ with open("10best") as inputf, open("ppdb-10best.tsv", 'w') as outf:
 ```
 
 
-### 実行
+### Run
 
-全ての実験を実行
+Run all:
 ```sh
 ./experiments.sh
 ```
 
-語彙平易化のみを実行する場合
+Run lexical simplification only:
 ```sh
 ./experiments.sh simplification
 ```
