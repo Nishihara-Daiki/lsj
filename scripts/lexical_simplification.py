@@ -24,20 +24,9 @@ def main():
 	target_word_file = args.data + '/BCCWJ_target_location/location.txt'
 	reference_file = args.data + '/substitutes/mle_rank.csv'
 
-	word2vec = load_word2vec(args.embedding)
-	w2v_vocab = set(word2vec.vocab.keys())
-	language_model = kenlm.Model(args.language_model)
-	mecab = MeCab.Tagger("" if not args.mecab_dict else "-d " + args.mecab_dict)
-	word2level = load_word2level(args.word_to_complexity)
-	word2synonym = load_word2synonym(args.synonym_dict)
-	word2freq = load_freqs(args.word_to_freq, 'none')[0]
-	bert = load_bertmodel(args.pretrained_bert)
+	word2vec, w2v_vocab, language_model, mecab, word2level, word2synonym, word2freq, bert, freq_total, using_vocab = load(args)
 
-	freq_total = sum(word2freq.values())
-
-	using_vocab = w2v_vocab
-
-	output_log(args.log, 'vocab size is {}'.format(len(w2v_vocab)))
+	output_log(args.log, 'word2vec vocab size is {}'.format(len(w2v_vocab)))
 
 	results = list()
 	candidates_list = list()
@@ -47,7 +36,9 @@ def main():
 			line = line.strip()
 			sentence = morphological_analysis(line, mecab)
 			_,_,_,phrase,word,stem,_ = target.split(",")
-			target = phrase if phrase in using_vocab else word if word in using_vocab else stem if stem in using_vocab else ""
+			# target = phrase if phrase in using_vocab else word if word in using_vocab else stem if stem in using_vocab else ""
+			target = word if word in using_vocab or not using_vocab else stem if stem in using_vocab else ""
+			# target = word if not w2v_vocab else target
 			if target == "":
 				rst = phrase
 			else:
@@ -63,6 +54,21 @@ def main():
 
 	output_results(args.output, results)
 	evaluate(target_word_file, results, candidates_list, reference_file)
+
+
+def load(args):
+	word2vec = load_word2vec(args.embedding)
+	w2v_vocab = set(word2vec.vocab.keys()) if word2vec else {}
+	language_model = load_language_model(args.language_model)
+	mecab = MeCab.Tagger("" if not args.mecab_dict else "-d " + args.mecab_dict)
+	word2level = load_word2level(args.word_to_complexity)
+	word2synonym = load_word2synonym(args.synonym_dict)
+	word2freq = load_freqs(args.word_to_freq, 'none')
+	word2freq = word2freq[0] if word2freq else None
+	freq_total = sum(word2freq.values()) if word2freq else 0
+	bert = load_bertmodel(args.pretrained_bert)
+	using_vocab = w2v_vocab
+	return word2vec, w2v_vocab, language_model, mecab, word2level, word2synonym, word2freq, bert, freq_total, using_vocab
 
 
 # 候補をとってくる
@@ -85,7 +91,7 @@ def pick_candidates(target, most_similar, word2vec, w2v_vocab, word2synonym, ber
 				bert_score.append(v)
 
 	if candidate_type == 'gold':
-		candidates = [(l[0],0) for l in [[w["surface"] for w in morphological_analysis(c, mecab) if is_content(w["pos"]) and w["surface"] in w2v_vocab] for c in ref.rstrip().replace(',', ' ').split()[1:]] if len(l) > 0]
+		candidates = [l[0] for l in [[w["surface"] for w in morphological_analysis(c, mecab) if is_content(w["pos"]) and (w["surface"] in w2v_vocab or not w2v_vocab)] for c in ref.rstrip().replace(',', ' ').split()[1:]] if len(l) > 0]
 
 	if cos_threshold > 0:
 		if word2vec_score:
@@ -98,18 +104,26 @@ def pick_candidates(target, most_similar, word2vec, w2v_vocab, word2synonym, ber
 	return candidates, scores
 
 
+def load_language_model(filename):
+	return kenlm.Model(filename) if filename else None
+
+
 def load_word2synonym(filename):
 	word2synonym = defaultdict(list)
-	with open(filename) as f:
-		for line in f:
-			w1, w2, prob = line.rstrip().split('\t')[:3]
-			word2synonym[w1].append((w2, prob))
+	if filename:
+		with open(filename) as f:
+			for line in f:
+				w1, w2, prob = line.rstrip().split('\t')[:3]
+				word2synonym[w1].append((w2, prob))
 	return word2synonym
 
 
 def load_bertmodel(modelname):
-	tokenizer = BertJapaneseTokenizer.from_pretrained(modelname)
-	model = BertForMaskedLM.from_pretrained(modelname)
+	if modelname:
+		tokenizer = BertJapaneseTokenizer.from_pretrained(modelname)
+		model = BertForMaskedLM.from_pretrained(modelname)
+	else:
+		tokenizer, model = None, None
 	return tokenizer, model
 
 
@@ -120,7 +134,7 @@ def word_to_bertsynonym(device, bert, target, sentence, topk):
 	input_string = sentence + tokenizer.sep_token + line[0] + tokenizer.mask_token + ''.join(line[1:])
 	input_ids = tokenizer.encode(input_string, return_tensors='pt')
 	if device != -1:
-		cuda = 'cuda:' + device
+		cuda = 'cuda:' + str(device)
 		input_ids = input_ids.to(cuda)
 		model.to(cuda)
 	masked_index = torch.where(input_ids == tokenizer.mask_token_id)[1].tolist()[0]
@@ -168,7 +182,7 @@ def ranking(target, candidates, scores, sentence, word2vec, w2v_vocab, word2freq
 	if ranking_type in {'glavas', 'bert'}:                   ranktable.append( make_ranking([word2freq[c] for c in candidates]) )
 	if ranking_type in {'glavas', 'language-model', 'bert'}: ranktable.append( make_ranking([language_model_score(sentence, target, c, attached_words, language_model, mecab) for c in candidates]) )
 	if ranking_type in {'bert'}:                             ranktable.append( make_ranking(scores['bert']) )
-	if rankign_type == 'none':                               ranktable.append( [0 for c in candidates] )
+	if ranking_type == 'none':                               ranktable.append( [0 for c in candidates] )
 
 
 	sum_rank = [sum(f) for f in zip(*ranktable)]
