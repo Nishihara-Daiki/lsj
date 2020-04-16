@@ -158,6 +158,13 @@ if [ $# -eq 0 ]; then
 	name=lsj.point-wise.language-model
 	python3 scripts/lexical_simplification.py --candidate synonym --ranking glavas --data ${EVALUATION_DATASET} --output output/${name}.out --embedding ${WORD_EMBEDDING} --language-model ${LANGUAGE_MODEL} --word-to-freq ${WORD_2_FREQ} --synonym-dict data/ss.pointwise.tsv --pretrained-bert bert-base-japanese-whole-word-masking --word-to-complexity data/word2complexity.tsv > log/${name}.log
 
+	# all / 5-gram language model
+	name=lsj.all.language-model
+	python3 scripts/lexical_simplification.py --candidate all --ranking language-model --data ${EVALUATION_DATASET} --output output/${name}.out --embedding ${WORD_EMBEDDING} --language-model ${LANGUAGE_MODEL} --word-to-freq ${WORD_2_FREQ} --synonym-dict ${WORD_PAIR_2_PROB} --pretrained-bert bert-base-japanese-whole-word-masking --word-to-complexity data/word2complexity.tsv > log/${name}.log &
+
+	# all / 5-gram language model
+	name=lsj.all.Light-LS
+	python3 scripts/lexical_simplification.py --candidate all --ranking glavas --data ${EVALUATION_DATASET} --output output/${name}.out --embedding ${WORD_EMBEDDING} --language-model ${LANGUAGE_MODEL} --word-to-freq ${WORD_2_FREQ} --synonym-dict ${WORD_PAIR_2_PROB} --pretrained-bert bert-base-japanese-whole-word-masking --word-to-complexity data/word2complexity.tsv > log/${name}.log &
 
 	# bert / bert
 	name=lsj.bert.bert

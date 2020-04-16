@@ -36,9 +36,7 @@ def main():
 			line = line.strip()
 			sentence = morphological_analysis(line, mecab)
 			_,_,_,phrase,word,stem,_ = target.split(",")
-			# target = phrase if phrase in using_vocab else word if word in using_vocab else stem if stem in using_vocab else ""
 			target = word if word in using_vocab or not using_vocab else stem if stem in using_vocab else ""
-			# target = word if not w2v_vocab else target
 			if target == "":
 				rst = phrase
 			else:
@@ -294,9 +292,6 @@ def evaluate(input_file, output, candidates_list, reference_file):
 	precision = sum(precision_list) / sum(changed_list)
 	changed = sum(changed_list) / len(changed_list)
 	print("acc/prec/changed = {:>5.2f}\t{:>5.2f}\t{:>5.2f}".format(accuracy*100, precision*100, changed*100))
-	# print("acc/prec/changed = {}/{}\t{}/{}\t{}/{}".format(
-	# 	sum(accuracy_list), sum(tochange_list), sum(precision_list), sum(changed_list), sum(changed_list), len(changed_list)
-	# ))
 
 	c_potential = sum(c_potential_list) / len(c_potential_list)
 	c_precision = sum(c_precision_list) / len(c_precision_list)
