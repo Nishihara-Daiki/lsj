@@ -274,7 +274,7 @@ def evaluate(input_file, output, candidates_list, reference_file):
 				continue
 
 			# 全てのリファレンスにはleft と right が含まれていると確認する
-            assert all(r.startswith(left) and r.endswith(right) for r in ref_phrases)
+			assert all(r.startswith(left) and r.endswith(right) for r in ref_phrases)
 
 		accuracy_list.append(out_phrase in ref_phrases and in_phrase not in ref_phrases)
 		tochange_list.append(in_phrase not in ref_phrases)
