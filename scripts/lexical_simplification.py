@@ -254,6 +254,7 @@ def evaluate(input_file, output, candidates_list, reference_file):
 		# '漂って'だけは評価データの制作ミス（？）なので例外処理
 		if in_phrase == 'が漂って':
 			ref_phrases = ['が出て', 'がして']
+			left, right = 'が', 'て'
 		else:
 			refs = ref_line.strip().replace(',', ' ').split(' ')[1:]
 			rlist = [r for r in refs if r in in_phrase]
