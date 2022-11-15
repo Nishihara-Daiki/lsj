@@ -307,7 +307,7 @@ for line in inputf:
 
 ## ライセンス
 
-本リポジトリの言語資源は、[Attribution-ShareAlike 4.0 (CC BY-SA 4.0)](https://creativecommons.org/licenses/by-sa/4.0/)に従います。
+本リポジトリの言語資源は、[Creative Commons Attribution-ShareAlike 4.0 (CC BY-SA 4.0)](https://creativecommons.org/licenses/by-sa/4.0/)に従います。
 また、本リポジトリのソースコードは、[Apache License 2.0](https://licenses.opensource.jp/Apache-2.0/Apache-2.0.html)に従います。
 
 なお、本実験では次のリソースを利用しています。
