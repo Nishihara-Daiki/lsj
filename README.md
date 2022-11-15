@@ -258,3 +258,15 @@ Run lexical simplification only:
 ```sh
 ./experiments.sh simplification
 ```
+
+
+## License
+
+Language resources in this repository follows [Creative Commons Attribution-ShareAlike 4.0 (CC BY-SA 4.0)](https://creativecommons.org/licenses/by-sa/4.0/) license.
+Source codes in this repository follows [Apache License 2.0](https://licenses.opensource.jp/Apache-2.0/Apache-2.0.html).
+
+In this experiments, we use the following resources:
+
+* [BCCWJ frequency list](https://clrd.ninjal.ac.jp/bccwj/freq-list.html)
+* [Japanese Education Vocabulary List](http://jhlee.sakura.ne.jp/JEV/)
+* [Asahi Shimbun word vector](https://cl.asahi.com/api_data/wordembedding.html)
