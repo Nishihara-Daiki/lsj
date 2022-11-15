@@ -303,3 +303,14 @@ for line in inputf:
 ```sh
 ./experiments.sh
 ```
+
+
+## ライセンス
+
+本リポジトリの言語資源は、[Attribution-ShareAlike 4.0 (CC BY-SA 4.0)](https://creativecommons.org/licenses/by-sa/4.0/)に従います。
+また、本リポジトリのソースコードは、[Apache License 2.0](https://licenses.opensource.jp/Apache-2.0/Apache-2.0.html)に従います。
+
+なお、本実験では次のリソースを利用しています。
+* [現代日本語書き言葉均衡コーパス 語彙表](https://clrd.ninjal.ac.jp/bccwj/freq-list.html)
+* [日本語教育語彙表](http://jhlee.sakura.ne.jp/JEV/)
+* [朝日新聞ベクトル](https://cl.asahi.com/api_data/wordembedding.html)
