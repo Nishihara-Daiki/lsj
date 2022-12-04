@@ -254,6 +254,7 @@ def evaluate(input_file, output, candidates_list, reference_file):
 		# '漂って'だけは評価データの制作ミス（？）なので例外処理
 		if in_phrase == 'が漂って':
 			ref_phrases = ['が出て', 'がして']
+			left, right = 'が', 'て'
 		else:
 			refs = ref_line.strip().replace(',', ' ').split(' ')[1:]
 			rlist = [r for r in refs if r in in_phrase]
@@ -273,9 +274,9 @@ def evaluate(input_file, output, candidates_list, reference_file):
 			if not ref_phrases:
 				continue
 
-			# left と right が含まれているリファレンスが１つ以上ある場合に限定する
-			if sum(left == r[:len(left)] and right == r[-len(right):] for r in ref_phrases) == 0:
-				continue
+			# 全てのリファレンスにはleft と right が含まれていると確認する
+			assert all(r.startswith(left) and r.endswith(right) for r in ref_phrases)
+
 		accuracy_list.append(out_phrase in ref_phrases and in_phrase not in ref_phrases)
 		tochange_list.append(in_phrase not in ref_phrases)
 		precision_list.append(out_phrase in ref_phrases and out_phrase != in_phrase)
